@@ -14,5 +14,7 @@ Visitors can reach the Contact section from the header nav and footer. Depends o
 - [ ] `scripts/validate.sh` passes (anchors resolve)
 
 ## Status
-pending
+validated
 ## Log
+round 1: worker added header + footer links → validator FAIL (footer link dark-on-dark, 20px tall)
+round 2: worker added `footer a` colour/hover/44px rules in styles.css → validator PASS (14.7:1 contrast, hover 11.5:1, 44px, no overflow at 375px)
