@@ -72,6 +72,9 @@ nav a.pill:hover{color:var(--white)}
 footer{padding:48px 24px;background:var(--ink);color:#E3E9DD}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px}
 footer .fb{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:24px;color:var(--white)}
+footer a{color:var(--white);display:inline-flex;align-items:center;min-height:44px}
+footer a:hover{color:var(--butter)}
+.contact-link{display:inline-flex;align-items:center;min-height:44px;font-weight:700;overflow-wrap:anywhere}
 [hidden]{display:none!important}
 .midwives{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px}
 .midwife{margin:0}
