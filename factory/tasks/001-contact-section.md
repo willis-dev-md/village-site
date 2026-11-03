@@ -20,5 +20,6 @@ A visible "Contact" section on the page, placed after `#join` and before the foo
 (If TBC, worker uses obvious placeholders `hello@example.org`, `01484 000000` and flags them in its report.)
 
 ## Status
-pending
+validated
 ## Log
+round 1: worker added #contact + .contact-link (placeholders: hello@example.org, 01484 000000, hours 'to be confirmed') → validator PASS (375px no overflow, links 44px)
