@@ -5,6 +5,9 @@ Reusable software factory for Claude Code: orchestrator command, four mandatory 
 
     factory-kit/install.sh /path/to/project --check node    # or python, static-site, or omit --check
 
+On request (never scheduled), run `/document <task|change|topic>` for the documentor and `/runbook <task|incident|refine>`
+for the runbook-refiner, outside the `/factory` loop.
+
 Then edit `scripts/checks.d/` for the project, and run `/factory <goal>` in Claude Code.
 
 What it installs: `.claude/agents/*` (4 roles), `.claude/commands/factory.md`, `factory/tasks/_template.md`

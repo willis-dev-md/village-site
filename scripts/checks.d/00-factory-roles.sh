@@ -14,6 +14,7 @@ for w in documentor runbook-refiner; do
   grep -q "$w" .claude/commands/factory.md 2>/dev/null || err ".claude/commands/factory.md no longer runs the $w"
   grep -qi "$w" CLAUDE.md 2>/dev/null || err "CLAUDE.md does not describe the $w role"
 done
+for c in document runbook; do [ -f ".claude/commands/$c.md" ] || err "missing on-request command .claude/commands/$c.md"; done
 [ -f docs/runbooks/README.md ] || err "docs/runbooks/README.md missing (runbook index)"
 [ -f docs/runbooks/_template.md ] || err "docs/runbooks/_template.md missing"
 

@@ -17,3 +17,5 @@ a **worker** implements, a **validator** independently checks, a **documentor** 
 - Project checks are scripts in `scripts/checks.d/`; add one per quality gate (tests, lint, a11y, ...).
   `00-factory-roles.sh` enforces the roles and the impact sections and is installed by the kit: do not remove it.
 - Run the loop with `/factory <goal>`.
+- The documentor and runbook-refiner also run **on request, never on a schedule**: `/document <task|change|topic>` and
+  `/runbook <task|incident|refine>`. Do not create scheduled or background jobs for them.
