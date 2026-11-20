@@ -13,6 +13,12 @@ Visitors can reach the Contact section from the header nav and footer. Depends o
 - [ ] No other nav links removed or reordered
 - [ ] `scripts/validate.sh` passes (anchors resolve)
 
+## Docs impact
+none: navigation links only; README's file list is unchanged.
+
+## Runbook impact
+none: no operational change; links are static HTML.
+
 ## Status
 validated
 ## Log

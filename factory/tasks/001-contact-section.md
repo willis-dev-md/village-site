@@ -19,6 +19,12 @@ A visible "Contact" section on the page, placed after `#join` and before the foo
 - Hours: TBC
 (If TBC, worker uses obvious placeholders `hello@example.org`, `01484 000000` and flags them in its report.)
 
+## Docs impact
+none: static page content only; the README already describes the site's files and contains no contact details.
+
+## Runbook impact
+none: no new way to run or operate the site; the contact section is plain HTML (placeholder values are flagged in the task Log for the user to replace).
+
 ## Status
 validated
 ## Log
