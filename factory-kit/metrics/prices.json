@@ -1,0 +1,9 @@
+{
+  "currency": "USD",
+  "note": "Fill from your provider's pricing page. null = unknown. Cost is shown only when all five prices for a model are set.",
+  "per_million_tokens": {
+    "claude-opus-5-5":   {"input": null, "output": null, "cache_write_5m": null, "cache_write_1h": null, "cache_read": null},
+    "claude-sonnet-5-5": {"input": null, "output": null, "cache_write_5m": null, "cache_write_1h": null, "cache_read": null},
+    "claude-haiku-5-5":  {"input": null, "output": null, "cache_write_5m": null, "cache_write_1h": null, "cache_read": null}
+  }
+}

@@ -13,9 +13,13 @@ for f in "$kit"/agents/*.md; do
   if [ -f "$dest" ] && grep -q "factory-kit: customized" "$dest"; then echo "kept customized agent: $dest"; else cp "$f" "$dest"; fi
 done
 cp "$kit"/commands/*.md "$target/.claude/commands/"
-cp "$kit/tasks/_template.md" "$target/factory/tasks/_template.md"
+if [ -f "$target/factory/tasks/_template.md" ] && grep -q "factory-kit: customized" "$target/factory/tasks/_template.md"; then echo "kept customized task template"; else cp "$kit/tasks/_template.md" "$target/factory/tasks/_template.md"; fi
 cp "$kit/scripts/validate.sh" "$target/scripts/validate.sh"; chmod +x "$target/scripts/validate.sh"
 cp "$kit/scripts/factory-roles-check.sh" "$target/scripts/checks.d/00-factory-roles.sh"; chmod +x "$target/scripts/checks.d/00-factory-roles.sh"
+mkdir -p "$target/factory/metrics"
+cp "$kit/scripts/factory-metrics.py" "$target/scripts/factory-metrics.py"; chmod +x "$target/scripts/factory-metrics.py"
+cp "$kit/metrics/README.md" "$target/factory/metrics/README.md"
+[ -f "$target/factory/metrics/prices.json" ] || cp "$kit/metrics/prices.json" "$target/factory/metrics/prices.json"
 cp "$kit/runbooks/_template.md" "$target/docs/runbooks/_template.md"
 [ -f "$target/docs/runbooks/README.md" ] || cp "$kit/runbooks/README.md" "$target/docs/runbooks/README.md"
 if [ -n "$check" ]; then

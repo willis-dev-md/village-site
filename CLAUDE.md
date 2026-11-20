@@ -17,5 +17,8 @@ a **worker** implements, a **validator** independently checks, a **documentor** 
 - Project checks are scripts in `scripts/checks.d/`; add one per quality gate (tests, lint, a11y, ...).
   `00-factory-roles.sh` enforces the roles and the impact sections and is installed by the kit: do not remove it.
 - Run the loop with `/factory <goal>`.
+- Usage metrics: every agent prompt starts with `TASK <NNN> · round <R> · phase <...>`; `scripts/factory-metrics.py record` keeps the ledger
+  `factory/metrics/usage.jsonl` (no model cost, deduplicated per request); `/factory-report` shows the per-task split by role and the
+  cross-task review, on request only. The report proposes refinements; the user decides what changes in the factory.
 - The documentor and runbook-refiner also run **on request, never on a schedule**: `/document <task|change|topic>` and
   `/runbook <task|incident|refine>`. Do not create scheduled or background jobs for them.

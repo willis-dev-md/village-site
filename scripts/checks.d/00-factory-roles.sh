@@ -14,7 +14,10 @@ for w in documentor runbook-refiner; do
   grep -q "$w" .claude/commands/factory.md 2>/dev/null || err ".claude/commands/factory.md no longer runs the $w"
   grep -qi "$w" CLAUDE.md 2>/dev/null || err "CLAUDE.md does not describe the $w role"
 done
-for c in document runbook; do [ -f ".claude/commands/$c.md" ] || err "missing on-request command .claude/commands/$c.md"; done
+for c in document runbook factory-report; do [ -f ".claude/commands/$c.md" ] || err "missing on-request command .claude/commands/$c.md"; done
+[ -f scripts/factory-metrics.py ] || err "missing scripts/factory-metrics.py (usage ledger)"
+[ -f factory/metrics/README.md ] && [ -f factory/metrics/prices.json ] || err "missing factory/metrics/README.md or prices.json"
+if [ -f scripts/factory-metrics.py ]; then python3 -I scripts/factory-metrics.py selftest >/dev/null 2>&1 || err "factory-metrics selftest failed (run: python3 -I scripts/factory-metrics.py selftest)"; fi
 [ -f docs/runbooks/README.md ] || err "docs/runbooks/README.md missing (runbook index)"
 [ -f docs/runbooks/_template.md ] || err "docs/runbooks/_template.md missing"
 
