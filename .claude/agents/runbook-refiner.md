@@ -27,6 +27,12 @@ For every task:
 At the **end of a factory run** you also do one refinement pass across all task Logs of the run: recurring failures
 become troubleshooting entries, and the runbook index is re-checked for gaps (nothing important missing, nothing orphaned).
 
+## Budget and evidence (hard rules)
+- **At most 25 tool calls.** If you hit the budget, stop, mark what is left `UNVERIFIED` in the docs and say so in your report.
+- **Reuse evidence; do not re-run whole flows.** The orchestrator gives you an evidence pack (what the validator and the task's own tests already verified, with real outputs). Quote it. Do NOT re-run `scripts/validate.sh`, the full test suite, the e2e test or the full demo; the orchestrator runs the gate and the deterministic check.
+- Run each NEW command you document **at most once**, with a targeted command (a single package or a single CLI call), and keep its output (copy the real text; never rerun to "see again").
+- One start and one stop of the shared test database at most, and only if you really need it.
+
 Scope: `docs/runbooks/**` only. Never edit source, tests, configs, scripts, or other docs (tell the documentor via your report).
 Reply with: runbooks created/changed (path and why), evidence used (Log lines or commands), what is UNVERIFIED, gaps for a human.
 If a task truly has no operational impact, say so with the reason; the spec must already say `none: <reason>`.

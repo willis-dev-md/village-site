@@ -457,6 +457,19 @@ def cmd_report(args):
         w("_none_")
     w("")
 
+    budget = {"documentor": 20, "runbook-refiner": 25}
+    over = [r for r in ag if r["agent_type"] in budget and r["tool_calls"] > budget[r["agent_type"]]]
+    w("**Docs-role budget** (documentor 20 tool calls, runbook-refiner 25): refinement 'cap docs roles'\n")
+    if over:
+        w("| task | role | tool calls | budget | fresh tokens |\n|---|---|---:|---:|---:|")
+        for r in sorted(over, key=lambda x: (x["task"], x["agent_type"])):
+            w(f"| {r['task']} | {r['agent_type']} | {r['tool_calls']} | {budget[r['agent_type']]} | {fmt(fresh(r))} |")
+    else:
+        w("_none over budget_")
+    docs_f = sum(fresh(r) for r in ag if r["agent_type"] in budget)
+    core_f = sum(fresh(r) for r in ag if r["agent_type"] in ("worker", "validator"))
+    w(f"\nDocs roles used {fmt(docs_f)} fresh tokens vs {fmt(core_f)} for worker + validator ({docs_f/(core_f or 1):.0%}).\n")
+
     pref = collections.defaultdict(list)
     for r in ag:
         pref[r["agent_type"]].append(r["prefix_tokens"])

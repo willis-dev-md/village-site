@@ -20,8 +20,10 @@ Metrics: start **every** agent prompt with a tag line `TASK <NNN> Â· round <R> Â
    c. On FAIL, pass the validator's fixes to a new worker round. Max 3 rounds, then stop and ask the user.
    d. On PASS: run `python3 scripts/factory-docs-check.py snapshot NNN`. Then launch the `documentor` unless Docs impact is
       `none: <reason>`, and (after it finishes) the `runbook-refiner` unless Runbook impact is `none: <reason>`. A skipped role
-      gets a Log line (`documentor skipped: none: <reason>`). They edit only docs and runbooks; give the runbook-refiner the
-      task Log (FAILs, workarounds). They tag command blocks they ran with `<!-- verify -->` (see their agent files).
+      gets a Log line (`documentor skipped: none: <reason>`). They edit only docs and runbooks; give each an **evidence pack** (the validator's
+      report: what was verified and the real outputs, the task Log, the commands the task's own tests run) and tell them their tool-call
+      budget (documentor 20, runbook-refiner 25: see their agent files); they must reuse it and not re-run whole flows. Database-using
+      roles run one after the other, not in parallel. They tag command blocks they ran with `<!-- verify -->` (see their agent files).
    e. Run `python3 scripts/factory-docs-check.py check NNN` and `scripts/validate.sh` (deterministic, no agent). This replaces the
       second validator pass. On FAIL, append a Log line (`docs-check FAIL: <reason>`) and send the listed fixes to the owning role (max 2 rounds, then ask the user);
       the documentor and runbook-refiner run on a smaller model by default, so run the FIRST fix round with the strong model (pass `model: sonnet` on that Agent call). On WARN, read the

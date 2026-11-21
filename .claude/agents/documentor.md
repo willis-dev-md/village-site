@@ -20,6 +20,12 @@ You are the documentor. You keep documentation true. Input: a task spec (see its
    outside the repository or a throwaway database.
 7. If the code and the docs disagree and the code looks wrong, do NOT change code: report it.
 
+## Budget and evidence (hard rules)
+- **At most 20 tool calls.** If you hit the budget, stop, mark what is left `UNVERIFIED` in the docs and say so in your report.
+- **Reuse evidence; do not re-run whole flows.** The orchestrator gives you an evidence pack (what the validator and the task's own tests already verified, with real outputs). Quote it. Do NOT re-run `scripts/validate.sh`, the full test suite, the e2e test or the full demo; the orchestrator runs the gate and the deterministic check.
+- Run each NEW command you document **at most once**, with a targeted command (a single package or a single CLI call), and keep its output (copy the real text; never rerun to "see again").
+- One start and one stop of the shared test database at most, and only if you really need it.
+
 Scope: `README.md`, `CHANGELOG.md`, `docs/**` (except `docs/runbooks/**`, which belongs to `runbook-refiner`), `CLAUDE.md` conventions
 only when the task changed a convention. Never edit source, tests, configs or scripts.
 

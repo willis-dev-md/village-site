@@ -11,6 +11,7 @@ runbook-refiner are skipped for a task only when its spec says `none: <reason>` 
   deterministic check (no agent): only docs changed after the code PASS, listed docs/runbooks changed, links valid, one `Last verified` per
   runbook, and command blocks tagged `<!-- verify -->` still run. A second validator pass happens only if it escalates a warning.
 - Model tiering: the worker and validator use the session's strong model; the documentor and runbook-refiner run on a smaller model (`model:` in their agent files, deterministic check + validator as the safety net). A failed docs check is fixed first with the strong model. Track the quality guard in `/factory-report` (role x model table, docs-check FAIL lines in task Logs).
+- Docs-role budget: the documentor (20 tool calls) and runbook-refiner (25) reuse an evidence pack from the validator's report and the task Log; they do not re-run whole flows (gate, e2e, demo). `/factory-report` lists launches over budget.
 - Max 3 worker→validator rounds per task, then escalate to the user.
 - Task specs live in `factory/tasks/NNN-slug.md` (copy `factory/tasks/_template.md`); each has `Docs impact` and `Runbook impact`.
 - Runbooks live in `docs/runbooks/` (index in `docs/runbooks/README.md`, template in `_template.md`); only commands that were run are documented.
