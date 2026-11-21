@@ -118,20 +118,34 @@ def parse_tag(prompt):
     return m.group(1), int(m.group(2)), m.group(3).lower()
 
 
-def build_rows(session_id, transcript):
-    main, bad = read_jsonl(transcript)
-    sub_dir = os.path.join(os.path.dirname(transcript), session_id, "subagents")
-    rows, skipped = [], bad
+def build_rows(session_id, transcripts):
+    """A session's transcript can be split across project folders when the working directory changes:
+    every part is merged (requests are deduplicated by requestId across parts)."""
+    if isinstance(transcripts, str):
+        transcripts = [transcripts]
+    main, bad = [], 0
+    for t in transcripts:
+        lines, b = read_jsonl(t)
+        main += lines
+        bad += b
+    sub_dirs = [os.path.join(os.path.dirname(t), session_id, "subagents") for t in transcripts]
+    rows, skipped, seen = [], bad, set()
     for d in main:
         r = d.get("toolUseResult")
         if not (isinstance(r, dict) and r.get("agentId")):
             continue
         aid = r["agentId"]
+        if aid in seen:          # split sessions replay earlier results: count each agent once
+            continue
+        seen.add(aid)
         end = ts(d["timestamp"]) if d.get("timestamp") else 0.0
         dur = (r.get("totalDurationMs") or 0) / 1000.0
         task, rnd, phase = parse_tag(r.get("prompt"))
-        sub, b = read_jsonl(os.path.join(sub_dir, f"agent-{aid}.jsonl"))
-        skipped += b
+        sub = []
+        for sd in sub_dirs:
+            part, b = read_jsonl(os.path.join(sd, f"agent-{aid}.jsonl"))
+            sub += part
+            skipped += b
         reqs = requests_of(sub)
         if not reqs:
             skipped += 1
@@ -178,16 +192,20 @@ def find_transcripts(args):
     base = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR", os.path.expanduser("~/.claude")), "projects")
     if args.transcript:
         p = os.path.abspath(args.transcript)
-        return [(os.path.splitext(os.path.basename(p))[0], p)]
+        return [(os.path.splitext(os.path.basename(p))[0], [p])]
     sid = args.session or os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not sid:
         sys.exit("factory-metrics: no session: set CLAUDE_CODE_SESSION_ID or pass --session / --transcript")
-    hits = glob.glob(os.path.join(base, "*", f"{sid}.jsonl"))
+    hits = sorted(glob.glob(os.path.join(base, "*", f"{sid}.jsonl")))
     if not hits:
         sys.exit(f"factory-metrics: transcript for session {sid} not found under {base} (transcripts live only while the container does; record before the session ends)")
     if args.all:
-        return [(os.path.splitext(os.path.basename(p))[0], p) for p in sorted(glob.glob(os.path.join(os.path.dirname(hits[0]), "*.jsonl")))]
-    return [(sid, hits[0])]
+        groups = collections.defaultdict(list)
+        for d in sorted({os.path.dirname(h) for h in hits}):
+            for p in sorted(glob.glob(os.path.join(d, "*.jsonl"))):
+                groups[os.path.splitext(os.path.basename(p))[0]].append(p)
+        return sorted(groups.items())
+    return [(sid, hits)]
 
 
 def load_ledger(path):
@@ -203,8 +221,8 @@ def load_ledger(path):
 def cmd_record(args):
     keep = load_ledger(args.ledger)
     total_new, skipped = 0, 0
-    for sid, path in find_transcripts(args):
-        rows, sk = build_rows(sid, path)
+    for sid, paths in find_transcripts(args):
+        rows, sk = build_rows(sid, paths)
         skipped += sk
         keep = [r for r in keep if r.get("session") != sid] + rows
         total_new += len(rows)
@@ -462,6 +480,22 @@ def cmd_selftest(_):
     assert b["verdict"] == "PASS" and b["phase"] == "validate", b
     o = {r["task"]: r for r in rows if r["kind"] == "orchestrator"}
     assert o["007"]["cache_read"] == 2000 and o["unattributed"]["cache_write_5m"] == 1000, o
+    # the same session split across two project folders (working directory changed mid-session)
+    tmp2 = tempfile.mkdtemp()
+    sub2 = os.path.join(tmp2, sid, "subagents")
+    os.makedirs(sub2)
+    w_jsonl(os.path.join(sub2, "agent-ccc.jsonl"), [_asst("c1", "2026-01-01T00:05:10Z", "m-c", _u(2, 30, 0, 9))])
+    tp2 = os.path.join(tmp2, sid + ".jsonl")
+    w_jsonl(tp2, [_asst("m2", "2026-01-01T00:00:15Z", "m-o", _u(1, 5, 2000, 40)),   # replayed from part 1: must not be counted twice
+                  {"type": "user", "timestamp": "2026-01-01T00:00:30Z", "toolUseResult": {"agentId": "aaa", "agentType": "worker", "prompt": "TASK 007 · round 1 · phase code", "resolvedModel": "m-a", "totalDurationMs": 25000, "handbackReport": {"text": "x"}}},
+                  _asst("m3", "2026-01-01T00:05:05Z", "m-o", _u(1, 7, 100, 3)),
+                  {"type": "user", "timestamp": "2026-01-01T00:05:20Z", "toolUseResult": {"agentId": "ccc", "agentType": "documentor", "prompt": "TASK 007 · round 1 · phase docs", "resolvedModel": "m-c", "totalDurationMs": 15000,
+                   "handbackReport": {"text": "done"}}}])
+    both, sk2 = build_rows(sid, [tp, tp2])
+    assert sk2 == 0 and {r["agent_id"] for r in both if r["kind"] == "agent"} == {"aaa", "bbb", "ccc"}, both
+    assert [r["cache_write_5m"] for r in both if r["agent_id"] == "ccc"] == [30]
+    assert sum(1 for r in both if r["agent_id"] == "aaa") == 1, "replayed agent results must be counted once"
+    assert sum(r["cache_read"] for r in both if r["kind"] == "orchestrator") == 2000 + 100, "replayed requests counted once"
     ledger = os.path.join(tmp, "usage.jsonl")
     ns = argparse.Namespace(transcript=tp, session=None, all=False, ledger=ledger)
     cmd_record(ns)
