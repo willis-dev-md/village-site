@@ -10,6 +10,7 @@ runbook-refiner are skipped for a task only when its spec says `none: <reason>` 
   (or the spec says `none: <reason>` and the validator accepted it), AND `scripts/factory-docs-check.py check NNN` passes. That script is a
   deterministic check (no agent): only docs changed after the code PASS, listed docs/runbooks changed, links valid, one `Last verified` per
   runbook, and command blocks tagged `<!-- verify -->` still run. A second validator pass happens only if it escalates a warning.
+- Model tiering: the worker and validator use the session's strong model; the documentor and runbook-refiner run on a smaller model (`model:` in their agent files, deterministic check + validator as the safety net). A failed docs check is fixed first with the strong model. Track the quality guard in `/factory-report` (role x model table, docs-check FAIL lines in task Logs).
 - Max 3 worker→validator rounds per task, then escalate to the user.
 - Task specs live in `factory/tasks/NNN-slug.md` (copy `factory/tasks/_template.md`); each has `Docs impact` and `Runbook impact`.
 - Runbooks live in `docs/runbooks/` (index in `docs/runbooks/README.md`, template in `_template.md`); only commands that were run are documented.

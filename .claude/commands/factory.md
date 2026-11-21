@@ -23,7 +23,8 @@ Metrics: start **every** agent prompt with a tag line `TASK <NNN> Â· round <R> Â
       gets a Log line (`documentor skipped: none: <reason>`). They edit only docs and runbooks; give the runbook-refiner the
       task Log (FAILs, workarounds). They tag command blocks they ran with `<!-- verify -->` (see their agent files).
    e. Run `python3 scripts/factory-docs-check.py check NNN` and `scripts/validate.sh` (deterministic, no agent). This replaces the
-      second validator pass. On FAIL, send the listed fixes to the owning role (max 2 rounds, then ask the user). On WARN, read the
+      second validator pass. On FAIL, append a Log line (`docs-check FAIL: <reason>`) and send the listed fixes to the owning role (max 2 rounds, then ask the user);
+      the documentor and runbook-refiner run on a smaller model by default, so run the FIRST fix round with the strong model (pass `model: sonnet` on that Agent call). On WARN, read the
       warning yourself; only if you cannot resolve it, escalate by launching the `validator` (phase `docs-check`) on the docs.
    f. Only then set the task Status to `validated` and append to its Log. Then run `python3 scripts/factory-metrics.py record`
       (no model cost) so the usage ledger is updated and committed with the task.

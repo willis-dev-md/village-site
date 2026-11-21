@@ -13,6 +13,8 @@ Then edit `scripts/checks.d/` for the project, and run `/factory <goal>` in Clau
 Docs check: `scripts/factory-docs-check.py` (deterministic, no agent) replaces the second validator pass; the documentor and
 runbook-refiner are skipped when a spec says `none: <reason>` and the validator accepted it.
 
+Model tiering: the documentor and runbook-refiner default to a smaller model (`model: haiku` in their agent files); change it there if your quality guard says so.
+
 Usage metrics: `scripts/factory-metrics.py` builds a per-task token ledger from session transcripts (no model calls);
 `/factory-report` (on request) shows the per-task split by role and where to reduce tokens. See `factory/metrics/README.md`.
 
