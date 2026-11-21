@@ -15,6 +15,8 @@ for w in documentor runbook-refiner; do
   grep -qi "$w" CLAUDE.md 2>/dev/null || err "CLAUDE.md does not describe the $w role"
 done
 for c in document runbook factory-report; do [ -f ".claude/commands/$c.md" ] || err "missing on-request command .claude/commands/$c.md"; done
+[ -f scripts/factory-docs-check.py ] || err "missing scripts/factory-docs-check.py (deterministic docs check)"
+if [ -f scripts/factory-docs-check.py ]; then python3 -I scripts/factory-docs-check.py selftest >/dev/null 2>&1 || err "factory-docs-check selftest failed"; fi
 [ -f scripts/factory-metrics.py ] || err "missing scripts/factory-metrics.py (usage ledger)"
 [ -f factory/metrics/README.md ] && [ -f factory/metrics/prices.json ] || err "missing factory/metrics/README.md or prices.json"
 if [ -f scripts/factory-metrics.py ]; then python3 -I scripts/factory-metrics.py selftest >/dev/null 2>&1 || err "factory-metrics selftest failed (run: python3 -I scripts/factory-metrics.py selftest)"; fi

@@ -16,6 +16,8 @@ cp "$kit"/commands/*.md "$target/.claude/commands/"
 if [ -f "$target/factory/tasks/_template.md" ] && grep -q "factory-kit: customized" "$target/factory/tasks/_template.md"; then echo "kept customized task template"; else cp "$kit/tasks/_template.md" "$target/factory/tasks/_template.md"; fi
 cp "$kit/scripts/validate.sh" "$target/scripts/validate.sh"; chmod +x "$target/scripts/validate.sh"
 cp "$kit/scripts/factory-roles-check.sh" "$target/scripts/checks.d/00-factory-roles.sh"; chmod +x "$target/scripts/checks.d/00-factory-roles.sh"
+cp "$kit/scripts/factory-docs-check.py" "$target/scripts/factory-docs-check.py"; chmod +x "$target/scripts/factory-docs-check.py"
+grep -qs "^factory/.state/" "$target/.gitignore" || printf "factory/.state/\n" >> "$target/.gitignore"
 mkdir -p "$target/factory/metrics"
 cp "$kit/scripts/factory-metrics.py" "$target/scripts/factory-metrics.py"; chmod +x "$target/scripts/factory-metrics.py"
 cp "$kit/metrics/README.md" "$target/factory/metrics/README.md"

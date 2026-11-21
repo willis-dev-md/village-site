@@ -16,7 +16,11 @@ For every task:
    and when to escalate. Merge duplicates; do not let runbooks grow stale or contradictory; delete steps that no longer apply.
 3. **Only document what you ran.** Run each command and step (in a safe environment) and keep the real error text.
    Mark anything you could not run `UNVERIFIED` and say why. Never invent output.
-4. Each runbook ends with `Last verified: <date>, <commit short sha>` and names an owner role (not a person).
+4. Each runbook has exactly ONE `Last verified` line (the header line of `docs/runbooks/_template.md`: date and what was run; never
+   the word "uncommitted") and names an owner role (not a person). Tag command blocks you ran, that are deterministic and safe to
+   re-run, with `<!-- verify -->` directly above the fenced ```bash block (`<!-- verify: db -->` if it needs a database: DATABASE_URL
+   then comes from scripts/testdb.sh). The deterministic check re-runs tagged blocks; a failing block fails the task. Never tag blocks
+   that need secrets or network, or change anything outside the repository or a throwaway database.
 5. Keep them short and scannable: numbered steps, copy-pasteable commands, one problem per runbook or per table row.
 
 At the **end of a factory run** you also do one refinement pass across all task Logs of the run: recurring failures

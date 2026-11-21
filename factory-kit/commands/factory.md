@@ -15,12 +15,16 @@ Metrics: start **every** agent prompt with a tag line `TASK <NNN> Â· round <R> Â
 
 2. For each approved task (run independent tasks in parallel, each worker in its own worktree if they touch the same files):
    a. Launch the `worker` agent with the task path.
-   b. Launch the `validator` agent (fresh context) with the task path.
+   b. Launch the `validator` agent (fresh context, phase `validate`) with the task path. It is also the only reviewer of any
+      `none: <reason>` in Docs impact / Runbook impact; an unjustified reason is a FAIL.
    c. On FAIL, pass the validator's fixes to a new worker round. Max 3 rounds, then stop and ask the user.
-   d. On PASS, launch the `documentor` with the task path, then (after it finishes) the `runbook-refiner`
-      with the task path. They edit only docs and runbooks. Give the runbook-refiner the task Log (FAILs, workarounds).
-   e. Run `scripts/validate.sh` again; launch the `validator` once more to check the docs and runbook changes against
-      the spec's Docs/Runbook impact. On FAIL, send fixes to the owning role (max 2 rounds, then ask the user).
+   d. On PASS: run `python3 scripts/factory-docs-check.py snapshot NNN`. Then launch the `documentor` unless Docs impact is
+      `none: <reason>`, and (after it finishes) the `runbook-refiner` unless Runbook impact is `none: <reason>`. A skipped role
+      gets a Log line (`documentor skipped: none: <reason>`). They edit only docs and runbooks; give the runbook-refiner the
+      task Log (FAILs, workarounds). They tag command blocks they ran with `<!-- verify -->` (see their agent files).
+   e. Run `python3 scripts/factory-docs-check.py check NNN` and `scripts/validate.sh` (deterministic, no agent). This replaces the
+      second validator pass. On FAIL, send the listed fixes to the owning role (max 2 rounds, then ask the user). On WARN, read the
+      warning yourself; only if you cannot resolve it, escalate by launching the `validator` (phase `docs-check`) on the docs.
    f. Only then set the task Status to `validated` and append to its Log. Then run `python3 scripts/factory-metrics.py record`
       (no model cost) so the usage ledger is updated and committed with the task.
 3. After all tasks: launch the `runbook-refiner` for a refinement pass over every task Log of this run (recurring

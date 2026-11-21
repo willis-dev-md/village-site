@@ -13,11 +13,14 @@ Static site (no build step). See README.md.
 
 Work is produced by a factory: an **orchestrator** (the main session) splits work into tasks and four roles do it:
 a **worker** implements, a **validator** independently checks, a **documentor** keeps the documentation true, and a
-**runbook-refiner** (support) keeps runbooks and troubleshooting guides true. The four roles are mandatory in every factory.
+**runbook-refiner** (support) keeps runbooks and troubleshooting guides true. The four roles exist in every factory; the documentor and
+runbook-refiner are skipped for a task only when its spec says `none: <reason>` and the validator accepted the reason.
 
 - Workers never validate their own work; validators never edit code; documentor and runbook-refiner never edit code.
-- A task is done only when `scripts/validate.sh` passes, the validator returns `PASS`, AND the documentor and
-  runbook-refiner have run (docs and runbooks updated, or an explicit `none: <reason>` in the spec, which the validator checks).
+- A task is done only when `scripts/validate.sh` passes, the validator returns `PASS`, the documentor and runbook-refiner have run
+  (or the spec says `none: <reason>` and the validator accepted it), AND `scripts/factory-docs-check.py check NNN` passes. That script is a
+  deterministic check (no agent): only docs changed after the code PASS, listed docs/runbooks changed, links valid, one `Last verified` per
+  runbook, and command blocks tagged `<!-- verify -->` still run. A second validator pass happens only if it escalates a warning.
 - Max 3 worker→validator rounds per task, then escalate to the user.
 - Task specs live in `factory/tasks/NNN-slug.md` (copy `factory/tasks/_template.md`); each has `Docs impact` and `Runbook impact`.
 - Runbooks live in `docs/runbooks/` (index in `docs/runbooks/README.md`, template in `_template.md`); only commands that were run are documented.

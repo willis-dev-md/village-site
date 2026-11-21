@@ -10,6 +10,9 @@ for the runbook-refiner, outside the `/factory` loop.
 
 Then edit `scripts/checks.d/` for the project, and run `/factory <goal>` in Claude Code.
 
+Docs check: `scripts/factory-docs-check.py` (deterministic, no agent) replaces the second validator pass; the documentor and
+runbook-refiner are skipped when a spec says `none: <reason>` and the validator accepted it.
+
 Usage metrics: `scripts/factory-metrics.py` builds a per-task token ledger from session transcripts (no model calls);
 `/factory-report` (on request) shows the per-task split by role and where to reduce tokens. See `factory/metrics/README.md`.
 
