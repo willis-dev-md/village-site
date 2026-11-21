@@ -110,6 +110,40 @@ def tool_result_chars(lines, uses):
     return gate, total
 
 
+MSG_RE = re.compile(r'<agent-message from="([^"]+)">\s*(.*?)\s*</agent-message>', re.S)
+PHASE_ROLE = {"code": "worker", "validate": "validator", "docs-check": "validator", "docs": "documentor", "runbook": "runbook-refiner"}
+
+
+def walk_strings(o):
+    if isinstance(o, str):
+        yield o
+    elif isinstance(o, dict):
+        for v in o.values():
+            yield from walk_strings(v)
+    elif isinstance(o, list):
+        for v in o:
+            yield from walk_strings(v)
+
+
+def collect_reports(lines):
+    """Background agents hand their final report back as an <agent-message from="<agentId>"> block."""
+    out = {}
+    for d in lines:
+        for s in walk_strings(d):
+            if "<agent-message" not in s:
+                continue
+            for m in MSG_RE.finditer(s):
+                body = m.group(2).split("The report follows:", 1)[-1]
+                text = "\n".join(l.strip() for l in body.splitlines()).strip()
+                out.setdefault(m.group(1), text)
+    return out
+
+
+def sub_times(lines):
+    t = [ts(d["timestamp"]) for d in lines if d.get("timestamp")]
+    return (min(t), max(t)) if t else (None, None)
+
+
 def parse_tag(prompt):
     first = (prompt or "").strip().splitlines()[0] if (prompt or "").strip() else ""
     m = TAG_RE.match(first)
@@ -129,6 +163,7 @@ def build_rows(session_id, transcripts):
         main += lines
         bad += b
     sub_dirs = [os.path.join(os.path.dirname(t), session_id, "subagents") for t in transcripts]
+    reports = collect_reports(main)
     rows, skipped, seen = [], bad, set()
     for d in main:
         r = d.get("toolUseResult")
@@ -150,17 +185,26 @@ def build_rows(session_id, transcripts):
         if not reqs:
             skipped += 1
             continue
+        meta = {}
+        for sd in sub_dirs:
+            try:
+                meta = json.load(open(os.path.join(sd, f"agent-{aid}.meta.json"))) or meta
+            except (OSError, ValueError):
+                pass
+        t0, t1 = sub_times(sub)
+        if t0 is not None:
+            end, dur = t1, t1 - t0          # the agent's own transcript is the reliable clock
         uses = tool_uses(sub)
         reads = sorted({i.get("file_path") for n, i in uses.values() if n == "Read" and i.get("file_path")})
         gate_chars, total_chars = tool_result_chars(sub, uses)
         hb = r.get("handbackReport")
         text = hb.get("text") if isinstance(hb, dict) else (hb if isinstance(hb, str) else "")
-        text = text or ""
+        text = text or reports.get(aid, "")
         v = VERDICT_RE.match(text.strip().splitlines()[0]) if text.strip() else None
         first = reqs[0]
-        row = {"v": 1, "kind": "agent", "session": session_id, "agent_id": aid, "agent_type": r.get("agentType") or "unknown",
+        row = {"v": 1, "kind": "agent", "session": session_id, "agent_id": aid, "agent_type": r.get("agentType") or meta.get("agentType") or PHASE_ROLE.get(phase, "unknown"),
                "task": task, "round": rnd, "phase": phase, "model": r.get("resolvedModel") or first["model"],
-               "start": end - dur, "end": end, "duration_ms": r.get("totalDurationMs") or 0,
+               "start": end - dur, "end": end, "duration_ms": int(dur * 1000) or r.get("totalDurationMs") or 0,
                "prefix_tokens": first["input"] + first["cache_write_5m"] + first["cache_write_1h"] + first["cache_read"],
                "tool_calls": len(uses), "reads": reads, "gate_output_chars": gate_chars, "tool_result_chars": total_chars,
                "verdict": v.group(1).upper() if v else None, "unverified": text.count("UNVERIFIED"),
@@ -264,7 +308,11 @@ def money(x):
 
 
 def role_key(r):
-    return r["agent_type"] if r["kind"] == "agent" else "orchestrator"
+    if r["kind"] != "agent":
+        return "orchestrator"
+    if r["agent_type"] in (None, "", "unknown"):
+        return PHASE_ROLE.get(r["phase"], "unknown")
+    return r["agent_type"]
 
 
 def task_files(task):
@@ -496,6 +544,18 @@ def cmd_selftest(_):
     assert [r["cache_write_5m"] for r in both if r["agent_id"] == "ccc"] == [30]
     assert sum(1 for r in both if r["agent_id"] == "aaa") == 1, "replayed agent results must be counted once"
     assert sum(r["cache_read"] for r in both if r["kind"] == "orchestrator") == 2000 + 100, "replayed requests counted once"
+    # background agent: no agentType / report in the launch result; type from meta.json, report from the hand-back message
+    sub3 = os.path.join(tmp, sid, "subagents")
+    w_jsonl(os.path.join(sub3, "agent-ddd.jsonl"), [_asst("d1", "2026-01-01T00:06:00Z", "m-d", _u(2, 40, 0, 11)), _asst("d2", "2026-01-01T00:07:00Z", "m-d", _u(2, 5, 40, 12))])
+    json.dump({"agentType": "validator", "description": "x"}, open(os.path.join(sub3, "agent-ddd.meta.json"), "w"))
+    asyncmain = main + [{"type": "user", "timestamp": "2026-01-01T00:06:00Z", "toolUseResult": {"agentId": "ddd", "prompt": "TASK 007 · round 2 · phase docs-check", "status": "async_launched"}},
+                        {"type": "attachment", "timestamp": "2026-01-01T00:07:05Z", "attachment": {"type": "queued_command", "prompt": '<agent-message from="ddd">\n[Subagent hand-back] ... The report follows:\n  PASS\n  - ok UNVERIFIED x\n</agent-message>'}}]
+    tp3 = os.path.join(tmp, "sess-async.jsonl")
+    w_jsonl(tp3, asyncmain)
+    rows3, sk3 = build_rows("sess-1", [tp3])
+    d = [r for r in rows3 if r.get("agent_id") == "ddd"][0]
+    assert d["agent_type"] == "validator" and d["verdict"] == "PASS" and d["unverified"] == 1, d
+    assert d["duration_ms"] == 60000 and d["phase"] == "docs-check", d
     ledger = os.path.join(tmp, "usage.jsonl")
     ns = argparse.Namespace(transcript=tp, session=None, all=False, ledger=ledger)
     cmd_record(ns)
