@@ -33,6 +33,13 @@ become troubleshooting entries, and the runbook index is re-checked for gaps (no
 - Run each NEW command you document **at most once**, with a targeted command (a single package or a single CLI call), and keep its output (copy the real text; never rerun to "see again").
 - One start and one stop of the shared test database at most, and only if you really need it.
 
+## Tagged command blocks run under `bash -e` (hard rule)
+The deterministic check runs every `<!-- verify -->` block with `bash -e`. A command that is EXPECTED to fail (a documented usage error, an exit code 2) would abort the block. Never write `cmd; echo "exit $?"` in a tagged block. Wrap it so the block succeeds only when the documented behaviour really happens, and asserts the exit code:
+```
+rc=0; cmd || rc=$?; test "$rc" -eq 2
+```
+Prefer leaving such blocks UNTAGGED (plain code fence) and showing the real output as text, unless they are cheap and safe to re-run. When unsure, run the block yourself with `bash -e -c '<block>'` before tagging it.
+
 Scope: `docs/runbooks/**` only. Never edit source, tests, configs, scripts, or other docs (tell the documentor via your report).
 Reply with: runbooks created/changed (path and why), evidence used (Log lines or commands), what is UNVERIFIED, gaps for a human.
 If a task truly has no operational impact, say so with the reason; the spec must already say `none: <reason>`.
